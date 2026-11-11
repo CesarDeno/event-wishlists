@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { AuthGate } from "../components/AuthGate";
+import { ConfirmModal } from "../components/ConfirmModal";
 import { ItemSection } from "../components/ItemSection";
 import { QrCodeModal } from "../components/QrCodeModal";
 import {
@@ -65,6 +66,8 @@ export function AdminPage() {
 
    const [copiedId, setCopiedId] = useState<string | null>(null);
    const [qrList, setQrList] = useState<Wishlist | null>(null);
+   const [pendingDeleteList, setPendingDeleteList] = useState<Wishlist | null>(null);
+   const [deletingList, setDeletingList] = useState(false);
 
    useEffect(() => {
       if (!isSupabaseConfigured || !supabase) {
@@ -300,24 +303,24 @@ export function AdminPage() {
       await loadLists(userId, data.id);
    }
 
-   async function handleDeleteList(list: Wishlist) {
-      if (!supabase) return;
-      if (
-         !window.confirm(`¿Eliminar la lista "${list.title}" y todos sus productos? Esta acción no se puede deshacer.`)
-      ) {
-         return;
-      }
+   async function confirmDeleteList() {
+      if (!supabase || !pendingDeleteList) return;
+      const target = pendingDeleteList;
 
-      const { error } = await supabase.from("lists").delete().eq("id", list.id).eq("user_id", userId);
+      setDeletingList(true);
+      const { error } = await supabase.from("lists").delete().eq("id", target.id).eq("user_id", userId);
+      setDeletingList(false);
 
       if (error) {
          setListError(error.message);
+         setPendingDeleteList(null);
          return;
       }
 
-      if (editingListId === list.id) {
+      if (editingListId === target.id) {
          closeListForm();
       }
+      setPendingDeleteList(null);
       await loadLists(userId);
    }
 
@@ -643,7 +646,7 @@ export function AdminPage() {
                                        <button
                                           type="button"
                                           className="btn btn-danger btn-xs"
-                                          onClick={() => handleDeleteList(list)}
+                                          onClick={() => setPendingDeleteList(list)}
                                        >
                                           Borrar
                                        </button>
@@ -681,6 +684,16 @@ export function AdminPage() {
                slug={qrList.slug}
                url={`${window.location.origin}/l/${qrList.slug}`}
                onClose={() => setQrList(null)}
+            />
+         )}
+
+         {pendingDeleteList && (
+            <ConfirmModal
+               title="¿Eliminar lista?"
+               message={`Se eliminará "${pendingDeleteList.title}" y todos sus productos. Esta acción no se puede deshacer.`}
+               loading={deletingList}
+               onConfirm={confirmDeleteList}
+               onCancel={() => setPendingDeleteList(null)}
             />
          )}
       </>

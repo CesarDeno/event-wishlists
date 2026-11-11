@@ -429,6 +429,11 @@ select {
   color: var(--danger);
 }
 
+.btn-danger-solid {
+  background: var(--danger);
+  color: #ffffff;
+}
+
 .btn-sm {
   padding: 0.42rem 0.78rem;
   font-size: 0.85rem;
@@ -995,6 +1000,24 @@ select {
   width: min(360px, 100%);
 }
 
+.confirm-dialog {
+  width: min(380px, 100%);
+  padding: 1.35rem;
+  gap: 0.75rem;
+}
+
+.confirm-dialog p {
+  font-size: 0.92rem;
+  overflow-wrap: anywhere;
+}
+
+.confirm-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.6rem;
+  margin-top: 0.35rem;
+}
+
 .qr-svg-wrap {
   display: grid;
   place-items: center;
@@ -1340,6 +1363,10 @@ select {
 
   .btn-danger:hover:not(:disabled) {
     background: var(--danger-bg);
+  }
+
+  .btn-danger-solid:hover:not(:disabled) {
+    opacity: 0.9;
   }
 
   .list-nav-item:not(.is-selected):hover {

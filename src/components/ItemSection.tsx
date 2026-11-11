@@ -13,6 +13,7 @@ import {
 } from '../lib/format';
 import { formatSupabaseError, supabase } from '../lib/supabase';
 import type { Wishlist, WishlistItem } from '../types';
+import { ConfirmModal } from './ConfirmModal';
 
 interface ItemSectionProps {
   list: Wishlist;
@@ -63,6 +64,8 @@ export function ItemSection({
   const [draft, setDraft] = useState<ItemDraft>(EMPTY_DRAFT);
   const [saving, setSaving] = useState(false);
   const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [pendingDelete, setPendingDelete] = useState<WishlistItem | null>(null);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const rowRefs = useRef<Map<string, HTMLLIElement>>(new Map());
@@ -320,25 +323,30 @@ export function ItemSection({
     }
   }
 
-  async function handleDelete(item: WishlistItem) {
-    if (!supabase) return;
-    if (!window.confirm(`¿Eliminar "${item.title}" de esta lista?`)) return;
+  async function confirmDelete() {
+    if (!supabase || !pendingDelete) return;
+    const target = pendingDelete;
 
+    setDeleting(true);
     setError(null);
     const { error: deleteError } = await supabase
       .from('items')
       .delete()
-      .eq('id', item.id)
+      .eq('id', target.id)
       .eq('user_id', userId);
+
+    setDeleting(false);
 
     if (deleteError) {
       setError(deleteError.message);
+      setPendingDelete(null);
       return;
     }
 
-    if (editingId === item.id) {
+    if (editingId === target.id) {
       cancelEdit();
     }
+    setPendingDelete(null);
     await onRefresh();
   }
 
@@ -570,7 +578,7 @@ export function ItemSection({
                   <button
                     type="button"
                     className="btn btn-danger btn-sm"
-                    onClick={() => handleDelete(item)}
+                    onClick={() => setPendingDelete(item)}
                   >
                     Borrar
                   </button>
@@ -579,6 +587,16 @@ export function ItemSection({
             );
           })}
         </ul>
+      )}
+
+      {pendingDelete && (
+        <ConfirmModal
+          title="¿Eliminar producto?"
+          message={`Se eliminará "${pendingDelete.title}" de esta lista. Esta acción no se puede deshacer.`}
+          loading={deleting}
+          onConfirm={confirmDelete}
+          onCancel={() => setPendingDelete(null)}
+        />
       )}
     </section>
   );
