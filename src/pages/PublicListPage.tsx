@@ -1,8 +1,25 @@
-import { useEffect, useState } from 'react';
+import {
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type CSSProperties,
+} from 'react';
 import { useParams } from 'react-router-dom';
-import { formatMoney, isSafeHttpUrl } from '../lib/format';
-import { isSupabaseConfigured, supabase } from '../lib/supabase';
+import {
+  formatCountdown,
+  formatEventDate,
+  formatMoney,
+  getHostnameLabel,
+  isSafeHexColor,
+  isSafeHttpUrl,
+} from '../lib/format';
+import { fetchListItems, isSupabaseConfigured, supabase } from '../lib/supabase';
 import type { Wishlist, WishlistItem } from '../types';
+
+type SortMode = 'default' | 'price-asc' | 'price-desc';
+
+const STAGGER_DELAYS_MS = [35, 70, 98, 120, 138, 152];
 
 export function PublicListPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -11,6 +28,16 @@ export function PublicListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
+
+  const [sortMode, setSortMode] = useState<SortMode>('default');
+  const [onlyWithinBudget, setOnlyWithinBudget] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  const [shareCopied, setShareCopied] = useState(false);
+  const [showStickyBar, setShowStickyBar] = useState(false);
+  const [previewItem, setPreviewItem] = useState<WishlistItem | null>(null);
+
+  const headerRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -31,6 +58,10 @@ export function PublicListPage() {
       setLoading(true);
       setError(null);
       setBrokenImages({});
+      setSortMode('default');
+      setOnlyWithinBudget(false);
+      setHasInteracted(false);
+      setPreviewItem(null);
 
       const { data: listData, error: listError } = await supabase
         .from('lists')
@@ -53,17 +84,16 @@ export function PublicListPage() {
         return;
       }
 
-      const { data: itemsData, error: itemsError } = await supabase
-        .from('items')
-        .select('*')
-        .eq('list_id', listData.id)
-        .order('created_at', { ascending: true })
-        .returns<WishlistItem[]>();
+      const { data: itemsData, error: itemsError } = await fetchListItems(
+        listData.id,
+      );
 
       if (!active) return;
 
       if (itemsError) {
-        setError('Se encontró la lista, pero no fue posible cargar sus productos.');
+        setError(
+          'Se encontró la lista, pero no fue posible cargar sus productos.',
+        );
         setList(listData);
         setLoading(false);
         return;
@@ -83,12 +113,93 @@ export function PublicListPage() {
   useEffect(() => {
     const prevTitle = document.title;
     if (list) {
-      document.title = `${list.title} — Wishlist`;
+      document.title = `${list.emoji ? `${list.emoji} ` : ''}${list.title} — Wishlist`;
     }
     return () => {
       document.title = prevTitle;
     };
   }, [list]);
+
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header || !list) {
+      setShowStickyBar(false);
+      return;
+    }
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowStickyBar(!entry.isIntersecting);
+      },
+      { threshold: 0 },
+    );
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [list]);
+
+  useEffect(() => {
+    if (!previewItem) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setPreviewItem(null);
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [previewItem]);
+
+  const hasAnyPrice = useMemo(
+    () => items.some((item) => item.price !== null),
+    [items],
+  );
+
+  const canFilterByBudget = useMemo(() => {
+    if (!list || list.budget === null) return false;
+    const budget = list.budget;
+    const hasUnder = items.some((i) => i.price !== null && i.price <= budget);
+    const hasOver = items.some((i) => i.price !== null && i.price > budget);
+    return hasUnder && hasOver;
+  }, [items, list]);
+
+  const visibleItems = useMemo(() => {
+    const filtered =
+      onlyWithinBudget && list && list.budget !== null
+        ? items.filter((i) => i.price !== null && i.price <= list.budget!)
+        : items;
+
+    if (sortMode === 'default') return filtered;
+
+    return [...filtered].sort((a, b) => {
+      if (a.price === null && b.price === null) return 0;
+      if (a.price === null) return 1;
+      if (b.price === null) return -1;
+      return sortMode === 'price-asc' ? a.price - b.price : b.price - a.price;
+    });
+  }, [items, list, onlyWithinBudget, sortMode]);
+
+  async function handleShare() {
+    if (!list) return;
+    const url = window.location.href;
+
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: list.title, url });
+        return;
+      } catch (err) {
+        if (err instanceof DOMException && err.name === 'AbortError') {
+          return;
+        }
+      }
+    }
+
+    try {
+      await navigator.clipboard.writeText(url);
+      setShareCopied(true);
+      window.setTimeout(() => setShareCopied(false), 2000);
+    } catch {
+      window.prompt('Copia este enlace:', url);
+    }
+  }
 
   if (loading) {
     return (
@@ -124,77 +235,278 @@ export function PublicListPage() {
   }
 
   const budgetText = formatMoney(list.budget, list.currency);
+  const eventDateText = formatEventDate(list.event_date);
+  const countdownText = formatCountdown(list.event_date);
+  const safeAccent = isSafeHexColor(list.accent_color);
+  const heroStyle = safeAccent
+    ? ({ '--hero-accent': safeAccent } as CSSProperties)
+    : undefined;
+  const previewPrice = previewItem
+    ? formatMoney(previewItem.price, list.currency)
+    : null;
 
   return (
-    <main className="container public-page">
-      <header className="public-header">
-        <p className="eyebrow">Lista de regalos</p>
-        <h1>{list.title}</h1>
-        <div className="public-badges">
-          {budgetText && (
-            <span className="badge badge-accent">
-              Presupuesto tope: {budgetText}
-            </span>
-          )}
-          <span className="badge">
-            {items.length} {items.length === 1 ? 'producto' : 'productos'}
-          </span>
+    <>
+      <div
+        className={`public-sticky-bar ${showStickyBar ? 'is-visible' : ''}`}
+        aria-hidden={!showStickyBar}
+      >
+        <div className="public-sticky-inner">
+          <div className="sticky-title-wrap">
+            <strong>
+              {list.emoji ? `${list.emoji} ` : ''}
+              {list.title}
+            </strong>
+            {budgetText && (
+              <span className="muted small-text">Tope: {budgetText}</span>
+            )}
+          </div>
+          <button
+            type="button"
+            className={`btn btn-secondary btn-xs ${shareCopied ? 'is-copied' : ''}`}
+            onClick={handleShare}
+            tabIndex={showStickyBar ? 0 : -1}
+          >
+            {shareCopied ? 'Copiado ✓' : 'Compartir'}
+          </button>
         </div>
-      </header>
+      </div>
 
-      {items.length === 0 ? (
-        <section className="card empty-state">
-          <p className="muted">Esta lista aún no tiene productos agregados.</p>
-        </section>
-      ) : (
-        <section className="items-grid" aria-label="Productos de la lista">
-          {items.map((item) => {
-            const priceText = formatMoney(item.price, list.currency);
-            const showImage =
-              Boolean(item.image_url) &&
-              isSafeHttpUrl(item.image_url!) &&
-              !brokenImages[item.id];
-            const safeUrl = isSafeHttpUrl(item.url) ? item.url : null;
+      <main className="container public-page">
+        <header
+          ref={headerRef}
+          className="public-header public-hero"
+          style={heroStyle}
+        >
+          <div className="hero-top-row">
+            <p className="eyebrow">Lista de regalos</p>
+            <button
+              type="button"
+              className={`btn btn-secondary btn-xs ${shareCopied ? 'is-copied' : ''}`}
+              onClick={handleShare}
+            >
+              {shareCopied ? 'Enlace copiado ✓' : 'Compartir lista'}
+            </button>
+          </div>
 
-            return (
-              <article key={item.id} className="card item-card">
-                {showImage && (
-                  <div className="item-image-wrap">
-                    <img
-                      src={item.image_url!}
-                      alt={item.title}
-                      loading="lazy"
-                      onError={() =>
-                        setBrokenImages((prev) => ({ ...prev, [item.id]: true }))
-                      }
-                    />
+          <div className="hero-lead">
+            {list.emoji && (
+              <span className="hero-emoji" aria-hidden="true">
+                {list.emoji}
+              </span>
+            )}
+            <h1 className="display-title">{list.title}</h1>
+            {list.description && (
+              <p className="hero-description">{list.description}</p>
+            )}
+          </div>
+
+          <div className="public-badges hero-decoration">
+            {budgetText && (
+              <span className="badge badge-accent">
+                Presupuesto tope: {budgetText}
+              </span>
+            )}
+            {eventDateText && (
+              <span className="badge">
+                {eventDateText}
+                {countdownText ? ` · ${countdownText}` : ''}
+              </span>
+            )}
+            <span className="badge">
+              {items.length} {items.length === 1 ? 'producto' : 'productos'}
+            </span>
+          </div>
+        </header>
+
+        {items.length === 0 ? (
+          <section className="card empty-state">
+            <p className="muted">Esta lista aún no tiene productos agregados.</p>
+          </section>
+        ) : (
+          <>
+            {(hasAnyPrice && items.length > 1) || canFilterByBudget ? (
+              <div className="public-controls">
+                {hasAnyPrice && items.length > 1 && (
+                  <div
+                    className="segmented-control"
+                    role="group"
+                    aria-label="Ordenar productos"
+                  >
+                    <button
+                      type="button"
+                      className={`segment-btn ${sortMode === 'default' ? 'is-active' : ''}`}
+                      onClick={() => {
+                        setHasInteracted(true);
+                        setSortMode('default');
+                      }}
+                    >
+                      Orden original
+                    </button>
+                    <button
+                      type="button"
+                      className={`segment-btn ${sortMode === 'price-asc' ? 'is-active' : ''}`}
+                      onClick={() => {
+                        setHasInteracted(true);
+                        setSortMode('price-asc');
+                      }}
+                    >
+                      Menor precio
+                    </button>
+                    <button
+                      type="button"
+                      className={`segment-btn ${sortMode === 'price-desc' ? 'is-active' : ''}`}
+                      onClick={() => {
+                        setHasInteracted(true);
+                        setSortMode('price-desc');
+                      }}
+                    >
+                      Mayor precio
+                    </button>
                   </div>
                 )}
 
-                <div className="item-card-body">
-                  <div className="item-card-top">
-                    <h2>{item.title}</h2>
-                    {priceText && <p className="item-price">~ {priceText}</p>}
-                    {item.note && <p className="item-note">{item.note}</p>}
-                  </div>
+                {canFilterByBudget && (
+                  <button
+                    type="button"
+                    className={`btn btn-xs ${onlyWithinBudget ? 'btn-primary' : 'btn-secondary'}`}
+                    aria-pressed={onlyWithinBudget}
+                    onClick={() => {
+                      setHasInteracted(true);
+                      setOnlyWithinBudget((prev) => !prev);
+                    }}
+                  >
+                    Dentro del tope
+                  </button>
+                )}
+              </div>
+            ) : null}
 
-                  {safeUrl && (
-                    <a
-                      href={safeUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="btn btn-primary item-cta"
-                    >
-                      Ver producto
-                    </a>
-                  )}
-                </div>
-              </article>
-            );
-          })}
-        </section>
+            <section className="items-grid" aria-label="Productos de la lista">
+              {visibleItems.map((item, index) => {
+                const priceText = formatMoney(item.price, list.currency);
+                const storeLabel = getHostnameLabel(item.url);
+                const showImage =
+                  Boolean(item.image_url) &&
+                  isSafeHttpUrl(item.image_url!) &&
+                  !brokenImages[item.id];
+                const safeUrl = isSafeHttpUrl(item.url) ? item.url : null;
+                const delayMs = hasInteracted
+                  ? 0
+                  : STAGGER_DELAYS_MS[
+                      Math.min(index, STAGGER_DELAYS_MS.length - 1)
+                    ];
+
+                return (
+                  <article
+                    key={item.id}
+                    className={`card item-card ${item.is_favorite ? 'is-favorite' : ''} ${hasInteracted ? '' : 'card-stagger'}`}
+                    style={
+                      hasInteracted
+                        ? undefined
+                        : { animationDelay: `${delayMs}ms` }
+                    }
+                  >
+                    {showImage ? (
+                      <button
+                        type="button"
+                        className="item-image-wrap item-image-trigger"
+                        onClick={() => setPreviewItem(item)}
+                        aria-label={`Ampliar imagen de ${item.title}`}
+                      >
+                        <img
+                          src={item.image_url!}
+                          alt={item.title}
+                          loading="lazy"
+                          onError={() =>
+                            setBrokenImages((prev) => ({
+                              ...prev,
+                              [item.id]: true,
+                            }))
+                          }
+                        />
+                      </button>
+                    ) : (
+                      <div className="item-cover-fallback" aria-hidden="true">
+                        <span>{storeLabel ?? 'wishlist'}</span>
+                      </div>
+                    )}
+
+                    <div className="item-card-body">
+                      <div className="item-card-top">
+                        {item.is_favorite && (
+                          <span className="badge-favorite">
+                            Lo que más quiero
+                          </span>
+                        )}
+                        <div className="item-title-row">
+                          <h2>{item.title}</h2>
+                          {storeLabel && (
+                            <span className="store-pill">{storeLabel}</span>
+                          )}
+                        </div>
+                        {priceText && (
+                          <p className="item-price">~ {priceText}</p>
+                        )}
+                        {item.note && <p className="item-note">{item.note}</p>}
+                      </div>
+
+                      {safeUrl && (
+                        <a
+                          href={safeUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn btn-primary item-cta"
+                        >
+                          <span>Ver producto</span>
+                          <span aria-hidden="true">↗</span>
+                        </a>
+                      )}
+                    </div>
+                  </article>
+                );
+              })}
+            </section>
+          </>
+        )}
+      </main>
+
+      {previewItem && previewItem.image_url && (
+        <div
+          className="quicklook-backdrop"
+          role="dialog"
+          aria-modal="true"
+          aria-label={previewItem.title}
+          onClick={() => setPreviewItem(null)}
+        >
+          <div
+            className="quicklook-dialog"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <div className="quicklook-header">
+              <div className="quicklook-meta">
+                <strong>{previewItem.title}</strong>
+                {previewPrice && (
+                  <span className="muted small-text">~ {previewPrice}</span>
+                )}
+              </div>
+              <button
+                type="button"
+                className="btn btn-secondary btn-xs"
+                onClick={() => setPreviewItem(null)}
+                aria-label="Cerrar vista previa"
+              >
+                Cerrar
+              </button>
+            </div>
+            <img
+              src={previewItem.image_url}
+              alt={previewItem.title}
+              className="quicklook-image"
+            />
+          </div>
+        </div>
       )}
-    </main>
+    </>
   );
 }
-

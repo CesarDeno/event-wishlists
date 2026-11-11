@@ -17,6 +17,7 @@ interface ItemDraft {
   price: string;
   note: string;
   image_url: string;
+  is_favorite: boolean;
 }
 
 const EMPTY_DRAFT: ItemDraft = {
@@ -25,6 +26,7 @@ const EMPTY_DRAFT: ItemDraft = {
   price: '',
   note: '',
   image_url: '',
+  is_favorite: false,
 };
 
 export function ItemSection({
@@ -37,6 +39,7 @@ export function ItemSection({
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState<ItemDraft>(EMPTY_DRAFT);
   const [saving, setSaving] = useState(false);
+  const [reordering, setReordering] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   function startEdit(item: WishlistItem) {
@@ -47,6 +50,7 @@ export function ItemSection({
       price: item.price !== null ? String(item.price) : '',
       note: item.note ?? '',
       image_url: item.image_url ?? '',
+      is_favorite: Boolean(item.is_favorite),
     });
     setError(null);
   }
@@ -93,7 +97,11 @@ export function ItemSection({
       price,
       note,
       image_url: imageUrl,
+      is_favorite: draft.is_favorite,
     };
+
+    const nextOrder =
+      items.reduce((max, item, idx) => Math.max(max, item.sort_order ?? idx), -1) + 1;
 
     const result = editingId
       ? await supabase
@@ -103,6 +111,7 @@ export function ItemSection({
           .eq('user_id', userId)
       : await supabase.from('items').insert({
           ...payload,
+          sort_order: nextOrder,
           list_id: list.id,
           user_id: userId,
         });
@@ -116,6 +125,38 @@ export function ItemSection({
 
     setEditingId(null);
     setDraft(EMPTY_DRAFT);
+    await onRefresh();
+  }
+
+  async function handleMove(index: number, delta: -1 | 1) {
+    if (!supabase || reordering) return;
+    const targetIndex = index + delta;
+    if (targetIndex < 0 || targetIndex >= items.length) return;
+
+    setReordering(true);
+    setError(null);
+
+    const reordered = [...items];
+    const [moved] = reordered.splice(index, 1);
+    reordered.splice(targetIndex, 0, moved);
+
+    const updates = reordered.map((item, nextOrder) =>
+      supabase!
+        .from('items')
+        .update({ sort_order: nextOrder })
+        .eq('id', item.id)
+        .eq('user_id', userId),
+    );
+
+    const results = await Promise.all(updates);
+    setReordering(false);
+
+    const failed = results.find((res) => res.error);
+    if (failed?.error) {
+      setError(failed.error.message);
+      return;
+    }
+
     await onRefresh();
   }
 
@@ -148,7 +189,9 @@ export function ItemSection({
           <p className="eyebrow">Productos en</p>
           <h2>{list.title}</h2>
         </div>
-        <span className="badge">{items.length} productos</span>
+        <span className="badge">
+          {items.length} {items.length === 1 ? 'producto' : 'productos'}
+        </span>
       </div>
 
       <form onSubmit={handleSubmit} className="subcard stack">
@@ -169,6 +212,7 @@ export function ItemSection({
             <span>Precio aproximado ({list.currency})</span>
             <input
               type="number"
+              inputMode="decimal"
               min="0"
               step="any"
               placeholder="Ej. 450"
@@ -182,6 +226,9 @@ export function ItemSection({
           <span>URL de tienda *</span>
           <input
             type="url"
+            inputMode="url"
+            autoCapitalize="none"
+            autoCorrect="off"
             required
             placeholder="https://tienda.com/producto"
             value={draft.url}
@@ -204,12 +251,26 @@ export function ItemSection({
             <span>URL de imagen (opcional)</span>
             <input
               type="url"
+              inputMode="url"
+              autoCapitalize="none"
+              autoCorrect="off"
               placeholder="https://.../imagen.jpg"
               value={draft.image_url}
               onChange={(e) => setDraft({ ...draft, image_url: e.target.value })}
             />
           </label>
         </div>
+
+        <label className="checkbox-field">
+          <input
+            type="checkbox"
+            checked={draft.is_favorite}
+            onChange={(e) =>
+              setDraft({ ...draft, is_favorite: e.target.checked })
+            }
+          />
+          <span>Destacar como favorito (&ldquo;Lo que más quiero&rdquo;)</span>
+        </label>
 
         {error && <p className="alert alert-error">{error}</p>}
 
@@ -242,12 +303,17 @@ export function ItemSection({
         </p>
       ) : (
         <ul className="admin-item-list">
-          {items.map((item) => {
+          {items.map((item, index) => {
             const priceText = formatMoney(item.price, list.currency);
             return (
               <li key={item.id} className="admin-item-row">
                 <div className="admin-item-info">
-                  <strong>{item.title}</strong>
+                  <div className="item-title-row">
+                    <strong>{item.title}</strong>
+                    {item.is_favorite && (
+                      <span className="badge-favorite">Favorito</span>
+                    )}
+                  </div>
                   <div className="item-meta">
                     {priceText && <span>{priceText}</span>}
                     {item.note && <span>{item.note}</span>}
@@ -264,6 +330,26 @@ export function ItemSection({
                   )}
                 </div>
                 <div className="row-actions">
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => handleMove(index, -1)}
+                    disabled={reordering || index === 0}
+                    aria-label={`Subir ${item.title}`}
+                    title="Subir"
+                  >
+                    ↑
+                  </button>
+                  <button
+                    type="button"
+                    className="btn btn-ghost btn-xs"
+                    onClick={() => handleMove(index, 1)}
+                    disabled={reordering || index === items.length - 1}
+                    aria-label={`Bajar ${item.title}`}
+                    title="Bajar"
+                  >
+                    ↓
+                  </button>
                   <button
                     type="button"
                     className="btn btn-secondary btn-sm"
@@ -287,4 +373,3 @@ export function ItemSection({
     </section>
   );
 }
-

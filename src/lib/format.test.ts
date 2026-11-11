@@ -1,7 +1,11 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  formatCountdown,
+  formatEventDate,
   formatMoney,
+  getHostnameLabel,
+  isSafeHexColor,
   isSafeHttpUrl,
   isValidSlug,
   parseOptionalAmount,
@@ -33,6 +37,20 @@ describe('URL and amount helpers', () => {
     assert.equal(isSafeHttpUrl('tienda.com/producto'), false);
   });
 
+  it('extracts clean store hostname without www', () => {
+    assert.equal(
+      getHostnameLabel('https://www.amazon.com.mx/dp/B001'),
+      'amazon.com.mx',
+    );
+    assert.equal(getHostnameLabel('javascript:alert(1)'), null);
+  });
+
+  it('validates hex accent colors', () => {
+    assert.equal(isSafeHexColor('#007AFF'), '#007aff');
+    assert.equal(isSafeHexColor('red'), null);
+    assert.equal(isSafeHexColor(null), null);
+  });
+
   it('parses optional amounts cleanly', () => {
     assert.equal(parseOptionalAmount(''), null);
     assert.equal(parseOptionalAmount('  '), null);
@@ -46,5 +64,14 @@ describe('URL and amount helpers', () => {
     assert.match(formatMoney(500, 'MXN') ?? '', /500.*MXN/);
     assert.equal(formatMoney(100, 'INVALID'), '100 INVALID');
   });
-});
 
+  it('formats event countdown accurately across local dates', () => {
+    const base = new Date(2026, 10, 11); // 11 nov 2026 local
+    assert.equal(formatCountdown('2026-11-11', base), 'Hoy es el evento');
+    assert.equal(formatCountdown('2026-11-12', base), 'Falta 1 día');
+    assert.equal(formatCountdown('2026-11-23', base), 'Faltan 12 días');
+    assert.equal(formatCountdown('2026-11-10', base), 'Fue ayer');
+    assert.equal(formatCountdown('2026-11-08', base), 'Hace 3 días');
+    assert.ok(formatEventDate('2026-12-24'));
+  });
+});

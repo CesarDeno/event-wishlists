@@ -39,24 +39,6 @@ export function AuthGate() {
     );
   }
 
-  async function handleGoogleLogin() {
-    if (!supabase) return;
-    setLoading(true);
-    setError(null);
-
-    const { error: authError } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/admin`,
-      },
-    });
-
-    if (authError) {
-      setLoading(false);
-      setError(authError.message);
-    }
-  }
-
   return (
     <main className="page-center">
       <section className="card auth-card">
@@ -71,6 +53,10 @@ export function AuthGate() {
             <span>Correo electrónico</span>
             <input
               type="email"
+              inputMode="email"
+              autoCapitalize="none"
+              autoCorrect="off"
+              enterKeyHint="send"
               required
               autoComplete="email"
               placeholder="tu@correo.com"
@@ -83,19 +69,6 @@ export function AuthGate() {
             {loading ? 'Enviando...' : 'Enviar Magic Link'}
           </button>
         </form>
-
-        <div className="divider">
-          <span>o</span>
-        </div>
-
-        <button
-          type="button"
-          className="btn btn-secondary"
-          onClick={handleGoogleLogin}
-          disabled={loading}
-        >
-          Continuar con Google
-        </button>
 
         {sentMessage && <p className="alert alert-success">{sentMessage}</p>}
         {error && <p className="alert alert-error">{error}</p>}

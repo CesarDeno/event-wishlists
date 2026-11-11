@@ -1,4 +1,6 @@
 export const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
+const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
+const ISO_DATE_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export function isValidSlug(value: string): boolean {
   return SLUG_REGEX.test(value);
@@ -20,6 +22,24 @@ export function isSafeHttpUrl(raw: string): boolean {
   } catch {
     return false;
   }
+}
+
+export function getHostnameLabel(raw: string): string | null {
+  try {
+    const parsed = new URL(raw.trim());
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    return parsed.hostname.replace(/^www\./i, '');
+  } catch {
+    return null;
+  }
+}
+
+export function isSafeHexColor(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const trimmed = value.trim();
+  return HEX_COLOR_REGEX.test(trimmed) ? trimmed.toLowerCase() : null;
 }
 
 export function formatMoney(
@@ -50,3 +70,45 @@ export function parseOptionalAmount(raw: string): number | null {
   return parsed;
 }
 
+export function formatEventDate(
+  eventDate: string | null | undefined,
+): string | null {
+  if (!eventDate) return null;
+  const match = ISO_DATE_REGEX.exec(eventDate.trim());
+  if (!match) return null;
+  const date = new Date(
+    Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])),
+  );
+  if (Number.isNaN(date.getTime())) return null;
+  return new Intl.DateTimeFormat('es-MX', {
+    dateStyle: 'medium',
+    timeZone: 'UTC',
+  }).format(date);
+}
+
+export function formatCountdown(
+  eventDate: string | null | undefined,
+  today = new Date(),
+): string | null {
+  if (!eventDate) return null;
+  const match = ISO_DATE_REGEX.exec(eventDate.trim());
+  if (!match) return null;
+
+  const targetUtc = Date.UTC(
+    Number(match[1]),
+    Number(match[2]) - 1,
+    Number(match[3]),
+  );
+  const todayUtc = Date.UTC(
+    today.getFullYear(),
+    today.getMonth(),
+    today.getDate(),
+  );
+  const diffDays = Math.round((targetUtc - todayUtc) / 86_400_000);
+
+  if (diffDays === 0) return 'Hoy es el evento';
+  if (diffDays === 1) return 'Falta 1 día';
+  if (diffDays > 1) return `Faltan ${diffDays} días`;
+  if (diffDays === -1) return 'Fue ayer';
+  return `Hace ${Math.abs(diffDays)} días`;
+}

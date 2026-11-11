@@ -5,6 +5,10 @@ export interface Wishlist {
   title: string;
   budget: number | null;
   currency: string;
+  description?: string | null;
+  event_date?: string | null;
+  accent_color?: string | null;
+  emoji?: string | null;
   created_at: string;
 }
 
@@ -17,6 +21,7 @@ export interface WishlistItem {
   price: number | null;
   note: string | null;
   image_url: string | null;
+  is_favorite?: boolean;
+  sort_order?: number;
   created_at: string;
 }
-

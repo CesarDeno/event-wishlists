@@ -6,7 +6,7 @@ Aplicación web en React, TypeScript y Vite para gestionar listas personales de 
 
 1. Crea un proyecto en [Supabase](https://supabase.com/).
 2. Abre **SQL Editor** en tu proyecto y ejecuta el contenido completo de [`supabase/schema.sql`](supabase/schema.sql).
-3. En **Authentication → Providers**, verifica que **Email** esté habilitado para Magic Link (y **Google** si deseas usar ese botón).
+3. En **Authentication → Providers**, verifica que **Email** esté habilitado para Magic Link.
 4. En **Authentication → URL Configuration**, agrega `http://localhost:5173/admin` (y tu URL de producción en `/admin`) en **Redirect URLs**.
 
 ## 2. Configurar variables de entorno
