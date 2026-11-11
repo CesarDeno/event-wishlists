@@ -1142,15 +1142,111 @@ select {
 }
 
 .admin-item-row {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: var(--radius-md);
   padding: 0.9rem 1rem;
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   gap: 1rem;
   background: var(--surface);
   min-width: 0;
+}
+
+.admin-item-row.is-dragging {
+  z-index: 3;
+  border-color: var(--accent);
+  box-shadow: var(--shadow-chrome);
+}
+
+.admin-item-lead {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.drag-handle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 36px;
+  padding: 0;
+  border: none;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  cursor: grab;
+  flex-shrink: 0;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    background-color 140ms ease,
+    color 140ms ease;
+}
+
+.drag-handle::before {
+  content: '';
+  position: absolute;
+  inset: -4px -8px;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.drag-handle:focus-visible,
+.stepper-btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+.reorder-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--border);
+  border-radius: 9px;
+  background: var(--surface-subtle);
+  overflow: hidden;
+}
+
+.stepper-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 0.45rem;
+  border: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  user-select: none;
+  -webkit-user-select: none;
+  transition:
+    background-color 140ms ease,
+    transform 100ms var(--ease-out);
+}
+
+.stepper-btn + .stepper-btn {
+  border-left: 1px solid var(--border);
+}
+
+.stepper-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.stepper-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
 }
 
 .admin-item-row .row-actions {
@@ -1184,6 +1280,20 @@ select {
   color: var(--accent);
   text-decoration: none;
   overflow-wrap: anywhere;
+}
+
+.link-compact {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  max-width: 100%;
+  overflow-wrap: normal;
+}
+
+.link-compact > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 /* Botón flotante translúcido de tema */
@@ -1239,6 +1349,15 @@ select {
   .item-image-trigger:hover img {
     transform: scale(1.03);
   }
+
+  .drag-handle:hover {
+    background: var(--surface-subtle);
+    color: var(--text);
+  }
+
+  .stepper-btn:hover:not(:disabled) {
+    background: var(--surface);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1257,7 +1376,8 @@ select {
 
   .btn:active:not(:disabled),
   .segment-btn:active,
-  .theme-preset-btn:active {
+  .theme-preset-btn:active,
+  .stepper-btn:active:not(:disabled) {
     transform: none;
   }
 
@@ -1330,5 +1450,10 @@ select {
 
   .admin-item-row {
     flex-direction: column;
+    align-items: stretch;
+  }
+
+  .admin-item-lead {
+    width: 100%;
   }
 }

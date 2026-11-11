@@ -1,6 +1,7 @@
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
 import {
+  formatCompactUrl,
   formatCountdown,
   formatEventDate,
   formatMoney,
@@ -44,6 +45,15 @@ describe('URL and amount helpers', () => {
       'amazon.com.mx',
     );
     assert.equal(getHostnameLabel('javascript:alert(1)'), null);
+  });
+
+  it('formats compact URL without protocol, www, or query params', () => {
+    assert.equal(
+      formatCompactUrl('https://www.amazon.com.mx/dp/B08W2C5W59?ref=sr_1_6'),
+      'amazon.com.mx/dp/B08W2C5W59',
+    );
+    assert.equal(formatCompactUrl('https://tienda.com/'), 'tienda.com');
+    assert.equal(formatCompactUrl('javascript:alert(1)'), null);
   });
 
   it('parses optional amounts cleanly', () => {

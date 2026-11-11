@@ -35,6 +35,20 @@ export function getHostnameLabel(raw: string): string | null {
   }
 }
 
+export function formatCompactUrl(raw: string): string | null {
+  try {
+    const parsed = new URL(raw.trim());
+    if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
+      return null;
+    }
+    const host = parsed.hostname.replace(/^www\./i, '');
+    const path = parsed.pathname === '/' ? '' : parsed.pathname;
+    return `${host}${path}`;
+  } catch {
+    return null;
+  }
+}
+
 export const LIST_THEME_PRESETS = [
   { id: 'classic', label: 'Clásico', swatch: '#007aff' },
   { id: 'warm', label: 'Cálido', swatch: '#c67d3b' },
