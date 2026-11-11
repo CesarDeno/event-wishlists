@@ -1472,6 +1472,26 @@ select {
 }
 
 @media (max-width: 640px) {
+  .admin-topbar {
+    flex-wrap: nowrap;
+    gap: 0.75rem;
+    padding: 0.65rem 0.95rem;
+    margin-bottom: 1rem;
+  }
+
+  .admin-topbar .eyebrow,
+  .admin-topbar .topbar-actions .small-text {
+    display: none;
+  }
+
+  .admin-topbar h1 {
+    font-size: 1.2rem;
+  }
+
+  .admin-topbar .topbar-actions {
+    flex-shrink: 0;
+  }
+
   .admin-item-row {
     flex-direction: column;
     align-items: stretch;
@@ -1483,6 +1503,20 @@ select {
 }
 
 @media (max-width: 560px) {
+  .container {
+    padding-top: max(0.9rem, env(safe-area-inset-top, 0px));
+    padding-right: max(0.75rem, env(safe-area-inset-right, 0px));
+    padding-left: max(0.75rem, env(safe-area-inset-left, 0px));
+  }
+
+  .card {
+    padding: 1.05rem;
+  }
+
+  .admin-layout {
+    gap: 0.9rem;
+  }
+
   .form-grid {
     grid-template-columns: 1fr;
   }
