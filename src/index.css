@@ -755,6 +755,11 @@ select {
   background: color-mix(in srgb, var(--text) 7%, transparent);
 }
 
+.auth-card .segmented-control {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
 .segment-btn {
   border: none;
   background: transparent;

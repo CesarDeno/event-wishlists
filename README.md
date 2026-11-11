@@ -22,7 +22,7 @@
 | :--- | :--- | :--- | :--- |
 | `/` | Public | Neutral landing | Hides active events; discreet link to `/admin` |
 | `/l/:slug` | Public | Shareable wishlist | Budget cap, countdown, price sort/filter, Quick Look, store tags |
-| `/admin` | Owner only | Private studio | Magic Link auth, event & item CRUD, manual reorder, QR SVG export |
+| `/admin` | Owner only | Private studio | Email & password auth, event & item CRUD, manual reorder, QR SVG export |
 
 > **Intentional scope:** no gift reservations, no store URL scraping, and no visitor accounts.
 
@@ -35,7 +35,7 @@ flowchart LR
   Visitor["Visitor (/l/:slug)"] -->|Public SELECT| DB[("Supabase Postgres + RLS")]
   Bot["Social Crawler (WhatsApp / X)"] -->|User-Agent rewrite| OG["/api/list-meta"]
   OG -->|Fetch title & budget| DB
-  Owner["Owner (/admin)"] -->|Magic Link Auth| Auth["Supabase Auth"]
+  Owner["Owner (/admin)"] -->|Email & Password| Auth["Supabase Auth"]
   Owner -->|INSERT / UPDATE / DELETE| DB
 ```
 
@@ -47,7 +47,7 @@ flowchart LR
 | :--- | :--- | :--- |
 | **UI** | React 19 + native CSS | Apple-inspired translucent UI, light/dark mode, zero heavy UI libs |
 | **Routing** | `react-router-dom` v7 | Clean SPA routes with Vercel & Cloudflare fallbacks |
-| **Backend** | Supabase (`@supabase/supabase-js`) | Postgres + Email Magic Link + Row Level Security (`auth.uid() = user_id`) |
+| **Backend** | Supabase (`@supabase/supabase-js`) | Postgres + Email Auth + Row Level Security (`auth.uid() = user_id`) |
 | **QR & Previews** | `qrcode-generator` + `/api/list-meta` | Client-side SVG QR codes & dynamic Open Graph cards on share |
 
 ---
@@ -58,8 +58,7 @@ flowchart LR
 
 1. Create a project in [Supabase](https://supabase.com/).
 2. Run [`supabase/schema.sql`](supabase/schema.sql) in **SQL Editor**.
-3. Enable **Email** (Magic Link) in **Authentication → Providers**.
-4. Add `http://localhost:5173/admin` (and your production `/admin` URL) under **Authentication → URL Configuration → Redirect URLs**.
+3. Enable **Email** in **Authentication → Providers** (turn off **Confirm email** if you want instant signup without custom SMTP).
 
 ### 2. Environment Variables
 
