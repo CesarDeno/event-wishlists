@@ -117,7 +117,7 @@ export function PublicListPage() {
   useEffect(() => {
     const prevTitle = document.title;
     if (list) {
-      document.title = `${list.emoji ? `${list.emoji} ` : ''}${list.title} — Wishlist`;
+      document.title = `${list.title} — Wishlist`;
     }
     return () => {
       document.title = prevTitle;
@@ -326,10 +326,7 @@ export function PublicListPage() {
       >
         <div className="public-sticky-inner">
           <div className="sticky-title-wrap">
-            <strong>
-              {list.emoji ? `${list.emoji} ` : ''}
-              {list.title}
-            </strong>
+            <strong>{list.title}</strong>
             {budgetText && (
               <span className="muted small-text">Tope: {budgetText}</span>
             )}
@@ -394,11 +391,6 @@ export function PublicListPage() {
           </div>
 
           <div className="hero-lead">
-            {list.emoji && (
-              <span className="hero-emoji" aria-hidden="true">
-                {list.emoji}
-              </span>
-            )}
             <h1 className="display-title">{list.title}</h1>
             {list.description && (
               <p className="hero-description">{list.description}</p>

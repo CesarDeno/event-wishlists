@@ -23,7 +23,6 @@ interface ListDraft {
    slug: string;
    budget: string;
    currency: string;
-   emoji: string;
    event_date: string;
    description: string;
    host_name: string;
@@ -37,7 +36,6 @@ const EMPTY_LIST_DRAFT: ListDraft = {
    slug: "",
    budget: "",
    currency: "MXN",
-   emoji: "",
    event_date: "",
    description: "",
    host_name: "",
@@ -190,7 +188,6 @@ export function AdminPage() {
          slug: list.slug,
          budget: list.budget !== null ? String(list.budget) : "",
          currency: list.currency || "MXN",
-         emoji: list.emoji ?? "",
          event_date: list.event_date ?? "",
          description: list.description ?? "",
          host_name: list.host_name ?? "",
@@ -226,7 +223,6 @@ export function AdminPage() {
       const slug = listDraft.slug.trim().toLowerCase();
       const budget = parseOptionalAmount(listDraft.budget);
       const currency = listDraft.currency.trim().toUpperCase() || "MXN";
-      const emoji = listDraft.emoji.trim() || null;
       const eventDate = listDraft.event_date.trim() || null;
       const description = listDraft.description.trim() || null;
       const hostName = listDraft.host_name.trim() || null;
@@ -263,7 +259,6 @@ export function AdminPage() {
          slug,
          budget,
          currency,
-         emoji,
          event_date: eventDate,
          description,
          host_name: hostName,
@@ -367,29 +362,16 @@ export function AdminPage() {
                         <form onSubmit={handleSaveList} className="subcard stack">
                            <h3>{editingListId ? "Editar lista" : "Nueva lista"}</h3>
 
-                           <div className="form-grid">
-                              <label className="field">
-                                 <span>Título del evento *</span>
-                                 <input
-                                    type="text"
-                                    required
-                                    placeholder="Ej. Intercambio de oficina"
-                                    value={listDraft.title}
-                                    onChange={(e) => handleTitleChange(e.target.value)}
-                                 />
-                              </label>
-
-                              <label className="field">
-                                 <span>Emoji (opcional)</span>
-                                 <input
-                                    type="text"
-                                    maxLength={4}
-                                    placeholder="🎁"
-                                    value={listDraft.emoji}
-                                    onChange={(e) => setListDraft({ ...listDraft, emoji: e.target.value })}
-                                 />
-                              </label>
-                           </div>
+                           <label className="field">
+                              <span>Título del evento *</span>
+                              <input
+                                 type="text"
+                                 required
+                                 placeholder="Ej. Intercambio de oficina"
+                                 value={listDraft.title}
+                                 onChange={(e) => handleTitleChange(e.target.value)}
+                              />
+                           </label>
 
                            <label className="field">
                               <span>Slug público *</span>
@@ -599,10 +581,7 @@ export function AdminPage() {
                                        className="list-select-btn"
                                        onClick={() => setSelectedListId(list.id)}
                                     >
-                                       <strong>
-                                          {list.emoji ? `${list.emoji} ` : ""}
-                                          {list.title}
-                                       </strong>
+                                       <strong>{list.title}</strong>
                                        <span className="muted small-text">/l/{list.slug}</span>
                                        {(budgetText || dateText) && (
                                           <span className="muted small-text">

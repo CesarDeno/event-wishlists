@@ -9,7 +9,6 @@ export interface Wishlist {
   currency: string;
   description?: string | null;
   event_date?: string | null;
-  emoji?: string | null;
   host_name?: string | null;
   avatar_url?: string | null;
   theme_preset?: ListThemePreset | string | null;

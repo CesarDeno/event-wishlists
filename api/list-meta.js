@@ -47,15 +47,15 @@ export default async function handler(req, res) {
             Authorization: `Bearer ${supabaseKey}`,
          };
          const base = `${supabaseUrl}/rest/v1/lists?slug=eq.${encodeURIComponent(slug)}&limit=1`;
-         let response = await fetch(`${base}&select=title,description,budget,currency,emoji,host_name`, { headers });
+         let response = await fetch(`${base}&select=title,description,budget,currency,host_name`, { headers });
          if (!response.ok) {
-            response = await fetch(`${base}&select=title,description,budget,currency,emoji`, { headers });
+            response = await fetch(`${base}&select=title,description,budget,currency`, { headers });
          }
          if (response.ok) {
             const rows = await response.json();
             const list = Array.isArray(rows) ? rows[0] : null;
             if (list?.title) {
-               title = `${list.emoji ? `${list.emoji} ` : ""}${list.title} — Wishlist`;
+               title = `${list.title} — Wishlist`;
                const budget = formatBudget(list.budget, list.currency);
                const parts = [
                   list.host_name?.trim() ? `De ${list.host_name.trim()}` : null,

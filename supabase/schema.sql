@@ -9,7 +9,6 @@ create table if not exists public.lists (
   currency text not null default 'MXN',
   description text,
   event_date date,
-  emoji text,
   host_name text,
   avatar_url text,
   theme_preset text,
@@ -35,7 +34,6 @@ create table if not exists public.items (
 -- Migración idempotente para proyectos que ya ejecutaron el esquema inicial
 alter table public.lists add column if not exists description text;
 alter table public.lists add column if not exists event_date date;
-alter table public.lists add column if not exists emoji text;
 alter table public.lists add column if not exists host_name text;
 alter table public.lists add column if not exists avatar_url text;
 alter table public.lists add column if not exists theme_preset text;
