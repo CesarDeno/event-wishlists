@@ -1,3 +1,5 @@
+export type ListThemePreset = 'classic' | 'warm' | 'festive' | 'editorial';
+
 export interface Wishlist {
   id: string;
   user_id: string;
@@ -7,8 +9,11 @@ export interface Wishlist {
   currency: string;
   description?: string | null;
   event_date?: string | null;
-  accent_color?: string | null;
   emoji?: string | null;
+  host_name?: string | null;
+  avatar_url?: string | null;
+  theme_preset?: ListThemePreset | string | null;
+  cover_url?: string | null;
   created_at: string;
 }
 

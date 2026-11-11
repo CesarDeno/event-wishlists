@@ -1,5 +1,4 @@
 export const SLUG_REGEX = /^[a-z0-9]+(?:-[a-z0-9]+)*$/;
-const HEX_COLOR_REGEX = /^#[0-9a-fA-F]{6}$/;
 const ISO_DATE_REGEX = /^(\d{4})-(\d{2})-(\d{2})$/;
 
 export function isValidSlug(value: string): boolean {
@@ -36,10 +35,41 @@ export function getHostnameLabel(raw: string): string | null {
   }
 }
 
-export function isSafeHexColor(value: string | null | undefined): string | null {
-  if (!value) return null;
-  const trimmed = value.trim();
-  return HEX_COLOR_REGEX.test(trimmed) ? trimmed.toLowerCase() : null;
+export const LIST_THEME_PRESETS = [
+  { id: 'classic', label: 'Clásico', swatch: '#007aff' },
+  { id: 'warm', label: 'Cálido', swatch: '#c67d3b' },
+  { id: 'festive', label: 'Navidad', swatch: '#2e7d5b' },
+  { id: 'editorial', label: 'Editorial', swatch: '#1c1c1e' },
+] as const;
+
+export type ValidThemePreset = (typeof LIST_THEME_PRESETS)[number]['id'];
+
+export function normalizeThemePreset(
+  value: string | null | undefined,
+): ValidThemePreset {
+  const match = LIST_THEME_PRESETS.find((preset) => preset.id === value);
+  return match ? match.id : 'classic';
+}
+
+export function getInitials(name: string | null | undefined): string {
+  const trimmed = (name ?? '').trim();
+  if (!trimmed) return '?';
+  const words = trimmed.split(/\s+/).filter(Boolean);
+  const firstWord = words[0];
+  const lastWord = words.length > 1 ? words[words.length - 1] : '';
+
+  const firstGrapheme = (word: string) => {
+    if (typeof Intl !== 'undefined' && 'Segmenter' in Intl) {
+      const seg = new Intl.Segmenter('es', { granularity: 'grapheme' });
+      const first = seg.segment(word)[Symbol.iterator]().next().value;
+      return first ? first.segment : '';
+    }
+    return Array.from(word)[0] ?? '';
+  };
+
+  return (
+    firstGrapheme(firstWord) + (lastWord ? firstGrapheme(lastWord) : '')
+  ).toUpperCase();
 }
 
 export function formatMoney(

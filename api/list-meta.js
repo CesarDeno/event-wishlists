@@ -12,6 +12,15 @@ function escapeHtml(value) {
     .replaceAll("'", '&#39;');
 }
 
+function isSafeHttpUrl(raw) {
+  try {
+    const parsed = new URL(String(raw).trim());
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
+  } catch {
+    return false;
+  }
+}
+
 function formatBudget(budget, currency) {
   if (budget === null || budget === undefined) return null;
   const num = Number(budget);
@@ -38,22 +47,28 @@ export default async function handler(req, res) {
   let title = DEFAULT_TITLE;
   let description = DEFAULT_DESCRIPTION;
   const pageUrl = slug ? `${origin}/l/${encodeURIComponent(slug)}` : origin;
-  const imageUrl = `${origin}/og-image.png`;
+  let imageUrl = `${origin}/og-image.png`;
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL?.trim();
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY?.trim();
 
   if (slug && supabaseUrl && supabaseKey) {
     try {
-      const endpoint = `${supabaseUrl}/rest/v1/lists?slug=eq.${encodeURIComponent(
-        slug,
-      )}&select=title,description,budget,currency,emoji&limit=1`;
-      const response = await fetch(endpoint, {
-        headers: {
-          apikey: supabaseKey,
-          Authorization: `Bearer ${supabaseKey}`,
-        },
-      });
+      const headers = {
+        apikey: supabaseKey,
+        Authorization: `Bearer ${supabaseKey}`,
+      };
+      const base = `${supabaseUrl}/rest/v1/lists?slug=eq.${encodeURIComponent(slug)}&limit=1`;
+      let response = await fetch(
+        `${base}&select=title,description,budget,currency,emoji,host_name,cover_url`,
+        { headers },
+      );
+      if (!response.ok) {
+        response = await fetch(
+          `${base}&select=title,description,budget,currency,emoji`,
+          { headers },
+        );
+      }
       if (response.ok) {
         const rows = await response.json();
         const list = Array.isArray(rows) ? rows[0] : null;
@@ -61,11 +76,16 @@ export default async function handler(req, res) {
           title = `${list.emoji ? `${list.emoji} ` : ''}${list.title} — Wishlist`;
           const budget = formatBudget(list.budget, list.currency);
           const parts = [
+            list.host_name?.trim() ? `De ${list.host_name.trim()}` : null,
             list.description?.trim() || null,
             budget ? `Presupuesto tope: ${budget}` : null,
             'Explora ideas de regalo y enlaces directos.',
           ].filter(Boolean);
           description = parts.join(' · ');
+          imageUrl =
+            list.cover_url && isSafeHttpUrl(list.cover_url)
+              ? list.cover_url.trim()
+              : `${origin}/api/og?slug=${encodeURIComponent(slug)}`;
         }
       }
     } catch {
@@ -103,4 +123,3 @@ export default async function handler(req, res) {
   <body></body>
 </html>`);
 }
-

@@ -5,9 +5,10 @@ import {
   formatEventDate,
   formatMoney,
   getHostnameLabel,
-  isSafeHexColor,
+  getInitials,
   isSafeHttpUrl,
   isValidSlug,
+  normalizeThemePreset,
   parseOptionalAmount,
   slugify,
 } from './format.ts';
@@ -45,12 +46,6 @@ describe('URL and amount helpers', () => {
     assert.equal(getHostnameLabel('javascript:alert(1)'), null);
   });
 
-  it('validates hex accent colors', () => {
-    assert.equal(isSafeHexColor('#007AFF'), '#007aff');
-    assert.equal(isSafeHexColor('red'), null);
-    assert.equal(isSafeHexColor(null), null);
-  });
-
   it('parses optional amounts cleanly', () => {
     assert.equal(parseOptionalAmount(''), null);
     assert.equal(parseOptionalAmount('  '), null);
@@ -73,5 +68,13 @@ describe('URL and amount helpers', () => {
     assert.equal(formatCountdown('2026-11-10', base), 'Fue ayer');
     assert.equal(formatCountdown('2026-11-08', base), 'Hace 3 días');
     assert.ok(formatEventDate('2026-12-24'));
+  });
+
+  it('computes initials and normalizes theme presets safely', () => {
+    assert.equal(getInitials('Cesar Denogean'), 'CD');
+    assert.equal(getInitials('Sofía'), 'S');
+    assert.equal(getInitials(''), '?');
+    assert.equal(normalizeThemePreset('festive'), 'festive');
+    assert.equal(normalizeThemePreset('unknown'), 'classic');
   });
 });

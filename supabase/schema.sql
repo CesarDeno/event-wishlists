@@ -9,8 +9,11 @@ create table if not exists public.lists (
   currency text not null default 'MXN',
   description text,
   event_date date,
-  accent_color text,
   emoji text,
+  host_name text,
+  avatar_url text,
+  theme_preset text,
+  cover_url text,
   created_at timestamptz not null default now(),
   constraint lists_slug_format check (slug ~ '^[a-z0-9]+(?:-[a-z0-9]+)*$')
 );
@@ -32,8 +35,11 @@ create table if not exists public.items (
 -- Migración idempotente para proyectos que ya ejecutaron el esquema inicial
 alter table public.lists add column if not exists description text;
 alter table public.lists add column if not exists event_date date;
-alter table public.lists add column if not exists accent_color text;
 alter table public.lists add column if not exists emoji text;
+alter table public.lists add column if not exists host_name text;
+alter table public.lists add column if not exists avatar_url text;
+alter table public.lists add column if not exists theme_preset text;
+alter table public.lists add column if not exists cover_url text;
 
 alter table public.items add column if not exists is_favorite boolean not null default false;
 alter table public.items add column if not exists sort_order integer not null default 0;

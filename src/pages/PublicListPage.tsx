@@ -3,7 +3,6 @@ import {
   useMemo,
   useRef,
   useState,
-  type CSSProperties,
 } from 'react';
 import { useParams } from 'react-router-dom';
 import {
@@ -11,8 +10,9 @@ import {
   formatEventDate,
   formatMoney,
   getHostnameLabel,
-  isSafeHexColor,
+  getInitials,
   isSafeHttpUrl,
+  normalizeThemePreset,
 } from '../lib/format';
 import { fetchListItems, isSupabaseConfigured, supabase } from '../lib/supabase';
 import type { Wishlist, WishlistItem } from '../types';
@@ -28,6 +28,8 @@ export function PublicListPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [brokenImages, setBrokenImages] = useState<Record<string, boolean>>({});
+  const [avatarBroken, setAvatarBroken] = useState(false);
+  const [coverBroken, setCoverBroken] = useState(false);
 
   const [sortMode, setSortMode] = useState<SortMode>('default');
   const [onlyWithinBudget, setOnlyWithinBudget] = useState(false);
@@ -58,6 +60,8 @@ export function PublicListPage() {
       setLoading(true);
       setError(null);
       setBrokenImages({});
+      setAvatarBroken(false);
+      setCoverBroken(false);
       setSortMode('default');
       setOnlyWithinBudget(false);
       setHasInteracted(false);
@@ -119,6 +123,73 @@ export function PublicListPage() {
       document.title = prevTitle;
     };
   }, [list]);
+
+  useEffect(() => {
+    const avatarUrl = list?.avatar_url?.trim();
+    if (!avatarUrl || !isSafeHttpUrl(avatarUrl)) return;
+
+    const iconLink = document.querySelector<HTMLLinkElement>('link[rel="icon"]');
+    if (!iconLink) return;
+
+    const prevHref = iconLink.getAttribute('href') ?? '/favicon.svg';
+    const prevType = iconLink.getAttribute('type');
+    let cancelled = false;
+
+    const applyDirectFallback = () => {
+      const probe = new Image();
+      probe.onload = () => {
+        if (cancelled) return;
+        iconLink.removeAttribute('type');
+        iconLink.href = avatarUrl;
+      };
+      probe.src = avatarUrl;
+    };
+
+    const corsImg = new Image();
+    corsImg.crossOrigin = 'anonymous';
+    corsImg.onload = () => {
+      if (cancelled) return;
+      try {
+        const size = 64;
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          applyDirectFallback();
+          return;
+        }
+        ctx.beginPath();
+        ctx.arc(size / 2, size / 2, size / 2, 0, Math.PI * 2);
+        ctx.closePath();
+        ctx.clip();
+
+        const scale = Math.max(size / corsImg.width, size / corsImg.height);
+        const w = corsImg.width * scale;
+        const h = corsImg.height * scale;
+        ctx.drawImage(corsImg, (size - w) / 2, (size - h) / 2, w, h);
+
+        iconLink.type = 'image/png';
+        iconLink.href = canvas.toDataURL('image/png');
+      } catch {
+        applyDirectFallback();
+      }
+    };
+    corsImg.onerror = () => {
+      if (!cancelled) applyDirectFallback();
+    };
+    corsImg.src = avatarUrl;
+
+    return () => {
+      cancelled = true;
+      iconLink.href = prevHref;
+      if (prevType) {
+        iconLink.type = prevType;
+      } else {
+        iconLink.removeAttribute('type');
+      }
+    };
+  }, [list?.avatar_url]);
 
   useEffect(() => {
     const header = headerRef.current;
@@ -237,16 +308,18 @@ export function PublicListPage() {
   const budgetText = formatMoney(list.budget, list.currency);
   const eventDateText = formatEventDate(list.event_date);
   const countdownText = formatCountdown(list.event_date);
-  const safeAccent = isSafeHexColor(list.accent_color);
-  const heroStyle = safeAccent
-    ? ({ '--hero-accent': safeAccent } as CSSProperties)
-    : undefined;
+  const themePreset = normalizeThemePreset(list.theme_preset);
+  const showCover =
+    Boolean(list.cover_url) && isSafeHttpUrl(list.cover_url!) && !coverBroken;
+  const showAvatar =
+    Boolean(list.avatar_url) && isSafeHttpUrl(list.avatar_url!) && !avatarBroken;
+  const showHost = Boolean(list.host_name?.trim()) || showAvatar;
   const previewPrice = previewItem
     ? formatMoney(previewItem.price, list.currency)
     : null;
 
   return (
-    <>
+    <div className="public-page-shell" data-list-theme={themePreset}>
       <div
         className={`public-sticky-bar ${showStickyBar ? 'is-visible' : ''}`}
         aria-hidden={!showStickyBar}
@@ -276,10 +349,41 @@ export function PublicListPage() {
         <header
           ref={headerRef}
           className="public-header public-hero"
-          style={heroStyle}
         >
+          {showCover && (
+            <div className="hero-cover">
+              <img
+                src={list.cover_url!}
+                alt={list.title}
+                onError={() => setCoverBroken(true)}
+              />
+            </div>
+          )}
+
           <div className="hero-top-row">
-            <p className="eyebrow">Lista de regalos</p>
+            {showHost ? (
+              <div className="hero-host">
+                {showAvatar ? (
+                  <img
+                    src={list.avatar_url!}
+                    alt={list.host_name ?? 'Anfitrión'}
+                    className="host-avatar"
+                    onError={() => setAvatarBroken(true)}
+                  />
+                ) : (
+                  <span className="host-initials" aria-hidden="true">
+                    {getInitials(list.host_name)}
+                  </span>
+                )}
+                <span className="host-label">
+                  {list.host_name?.trim()
+                    ? `Lista de ${list.host_name.trim()}`
+                    : 'Lista de regalos'}
+                </span>
+              </div>
+            ) : (
+              <p className="eyebrow">Lista de regalos</p>
+            )}
             <button
               type="button"
               className={`btn btn-secondary btn-xs ${shareCopied ? 'is-copied' : ''}`}
@@ -507,6 +611,6 @@ export function PublicListPage() {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }

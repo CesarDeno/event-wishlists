@@ -4,12 +4,15 @@ import { AuthGate } from '../components/AuthGate';
 import { ItemSection } from '../components/ItemSection';
 import { QrCodeModal } from '../components/QrCodeModal';
 import {
+  LIST_THEME_PRESETS,
   formatEventDate,
   formatMoney,
-  isSafeHexColor,
+  isSafeHttpUrl,
   isValidSlug,
+  normalizeThemePreset,
   parseOptionalAmount,
   slugify,
+  type ValidThemePreset,
 } from '../lib/format';
 import {
   fetchListItems,
@@ -27,7 +30,10 @@ interface ListDraft {
   emoji: string;
   event_date: string;
   description: string;
-  accent_color: string;
+  host_name: string;
+  avatar_url: string;
+  theme_preset: ValidThemePreset;
+  cover_url: string;
 }
 
 const EMPTY_LIST_DRAFT: ListDraft = {
@@ -38,16 +44,11 @@ const EMPTY_LIST_DRAFT: ListDraft = {
   emoji: '',
   event_date: '',
   description: '',
-  accent_color: '',
+  host_name: '',
+  avatar_url: '',
+  theme_preset: 'classic',
+  cover_url: '',
 };
-
-const ACCENT_PRESETS = [
-  { label: 'Azul', value: '#007aff' },
-  { label: 'Morado', value: '#af52de' },
-  { label: 'Rosa', value: '#ff2d55' },
-  { label: 'Naranja', value: '#ff9500' },
-  { label: 'Verde', value: '#34c759' },
-];
 
 export function AdminPage() {
   const [session, setSession] = useState<Session | null>(null);
@@ -197,7 +198,10 @@ export function AdminPage() {
       emoji: list.emoji ?? '',
       event_date: list.event_date ?? '',
       description: list.description ?? '',
-      accent_color: isSafeHexColor(list.accent_color) ?? '',
+      host_name: list.host_name ?? '',
+      avatar_url: list.avatar_url ?? '',
+      theme_preset: normalizeThemePreset(list.theme_preset),
+      cover_url: list.cover_url ?? '',
     });
     setSlugTouched(true);
     setListError(null);
@@ -230,7 +234,10 @@ export function AdminPage() {
     const emoji = listDraft.emoji.trim() || null;
     const eventDate = listDraft.event_date.trim() || null;
     const description = listDraft.description.trim() || null;
-    const accentColor = isSafeHexColor(listDraft.accent_color);
+    const hostName = listDraft.host_name.trim() || null;
+    const avatarUrl = listDraft.avatar_url.trim() || null;
+    const themePreset = normalizeThemePreset(listDraft.theme_preset);
+    const coverUrl = listDraft.cover_url.trim() || null;
 
     if (!title) {
       setListError('El título del evento es obligatorio.');
@@ -246,6 +253,14 @@ export function AdminPage() {
       setListError('El presupuesto debe ser un número válido mayor o igual a 0.');
       return;
     }
+    if (avatarUrl && !isSafeHttpUrl(avatarUrl)) {
+      setListError('La URL del avatar debe iniciar con http:// o https://.');
+      return;
+    }
+    if (coverUrl && !isSafeHttpUrl(coverUrl)) {
+      setListError('La URL de portada debe iniciar con http:// o https://.');
+      return;
+    }
 
     setSavingList(true);
     setListError(null);
@@ -258,7 +273,10 @@ export function AdminPage() {
       emoji,
       event_date: eventDate,
       description,
-      accent_color: accentColor,
+      host_name: hostName,
+      avatar_url: avatarUrl,
+      theme_preset: themePreset,
+      cover_url: coverUrl,
     };
 
     if (editingListId) {
@@ -501,40 +519,87 @@ export function AdminPage() {
                     />
                   </label>
 
+                  <div className="form-grid">
+                    <label className="field">
+                      <span>Anfitrión / firma (opcional)</span>
+                      <input
+                        type="text"
+                        maxLength={60}
+                        placeholder="Ej. Cesar Denogean"
+                        value={listDraft.host_name}
+                        onChange={(e) =>
+                          setListDraft({
+                            ...listDraft,
+                            host_name: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+
+                    <label className="field">
+                      <span>URL de avatar (opcional)</span>
+                      <input
+                        type="url"
+                        inputMode="url"
+                        autoCapitalize="none"
+                        autoCorrect="off"
+                        placeholder="https://.../avatar.jpg"
+                        value={listDraft.avatar_url}
+                        onChange={(e) =>
+                          setListDraft({
+                            ...listDraft,
+                            avatar_url: e.target.value,
+                          })
+                        }
+                      />
+                    </label>
+                  </div>
+
+                  <label className="field">
+                    <span>URL de portada del evento (opcional)</span>
+                    <input
+                      type="url"
+                      inputMode="url"
+                      autoCapitalize="none"
+                      autoCorrect="off"
+                      placeholder="https://.../portada.jpg"
+                      value={listDraft.cover_url}
+                      onChange={(e) =>
+                        setListDraft({
+                          ...listDraft,
+                          cover_url: e.target.value,
+                        })
+                      }
+                    />
+                  </label>
+
                   <div className="field">
-                    <span>Ambiente de cabecera</span>
-                    <div className="color-swatches">
-                      {ACCENT_PRESETS.map((preset) => {
-                        const active = listDraft.accent_color === preset.value;
+                    <span>Atmósfera de la lista</span>
+                    <div className="theme-preset-grid">
+                      {LIST_THEME_PRESETS.map((preset) => {
+                        const active = listDraft.theme_preset === preset.id;
                         return (
                           <button
-                            key={preset.value}
+                            key={preset.id}
                             type="button"
-                            className={`color-swatch ${active ? 'is-active' : ''}`}
-                            style={{ backgroundColor: preset.value }}
+                            className={`theme-preset-btn ${active ? 'is-active' : ''}`}
+                            aria-pressed={active}
                             onClick={() =>
                               setListDraft({
                                 ...listDraft,
-                                accent_color: active ? '' : preset.value,
+                                theme_preset: preset.id,
                               })
                             }
-                            aria-label={preset.label}
-                            aria-pressed={active}
-                            title={preset.label}
-                          />
+                          >
+                            <span
+                              className="theme-preset-dot"
+                              style={{ backgroundColor: preset.swatch }}
+                              aria-hidden="true"
+                            />
+                            <span>{preset.label}</span>
+                          </button>
                         );
                       })}
-                      {listDraft.accent_color && (
-                        <button
-                          type="button"
-                          className="btn btn-ghost btn-xs"
-                          onClick={() =>
-                            setListDraft({ ...listDraft, accent_color: '' })
-                          }
-                        >
-                          Predeterminado
-                        </button>
-                      )}
                     </div>
                   </div>
 
