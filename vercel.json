@@ -1,9 +1,19 @@
 {
   "rewrites": [
     {
+      "source": "/l/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(WhatsApp|facebookexternalhit|Facebot|Twitterbot|TelegramBot|Slackbot|Discordbot|LinkedInBot|Applebot|Pinterest).*"
+        }
+      ],
+      "destination": "/api/list-meta?slug=:slug"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
   ]
 }
-

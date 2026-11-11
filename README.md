@@ -1,63 +1,97 @@
+<div align="center">
+
+<img src="./public/og-image.png" alt="Event Wishlists Preview" width="760" />
+
 # Event Wishlists
 
-Creador de wishlists personalizadas por evento. Organiza ideas de regalo para intercambios, Navidad o cumpleaños y compártelas con un enlace directo: el frontend corre con React y Vite, mientras Supabase resuelve la base de datos, la autenticación del dueño y las reglas de acceso.
+**Personal gift wishlists by event — built with React, TypeScript, Vite & Supabase.**
 
-Cualquier visitante entra al enlace de tu evento sin crear cuenta ni iniciar sesión. El sistema tampoco aparta regalos ni hace scraping de tiendas externas: cada producto conserva los datos y el enlace manual que tú definas.
+![React](https://img.shields.io/badge/React-19-149eca?style=flat-square&logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-5.7-3178c6?style=flat-square&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-6-646cff?style=flat-square&logo=vite&logoColor=white)
+![Supabase](https://img.shields.io/badge/Supabase-Auth%20%26%20RLS-3ecf8e?style=flat-square&logo=supabase&logoColor=white)
+![Vercel](https://img.shields.io/badge/Deploy-Vercel%20%2F%20CF%20Pages-000000?style=flat-square&logo=vercel&logoColor=white)
 
-## Qué ofrece el proyecto
+</div>
 
-- **Vista pública compartible (`/l/:slug`):** muestra el título del evento, emoji opcional, nota de bienvenida, fecha con cuenta regresiva y presupuesto tope. Cada tarjeta incluye tienda detectada desde la URL, precio aproximado, insignia de favorito, vista ampliada de imagen al tocarla y botón directo hacia el comercio.
-- **Orden y presupuesto al instante:** cuando una lista incluye precios, quien visita puede ordenar de menor a mayor, de mayor a menor o filtrar solo los artículos dentro del presupuesto tope.
-- **Panel privado (`/admin`):** acceso exclusivo por Magic Link enviado al correo. Desde ahí creas o editas eventos con slug personalizado, copias el enlace en un clic, descargas el código QR en formato SVG, destacas favoritos y reordenas productos a mano.
-- **Privacidad en la raíz (`/`):** la página inicial se mantiene neutra y nunca expone tus listas activas; solo ofrece un acceso discreto al panel de administración.
-- **Tema claro y oscuro global:** detecta la preferencia del sistema al cargar e incluye un selector flotante en todas las rutas.
+---
 
-## Stack técnico
+## Routes
 
-- **Frontend:** React 19, TypeScript y Vite 6 con `react-router-dom`.
-- **Backend:** Supabase (`@supabase/supabase-js`) con PostgreSQL, Supabase Auth (Magic Link) y Row Level Security.
-- **Seguridad de datos:** lectura pública (`SELECT`) para visitantes en `lists` e `items`, mientras que `INSERT`, `UPDATE` y `DELETE` exigen `auth.uid() = user_id`.
-- **Códigos QR:** `qrcode-generator` para construir el SVG directo en el navegador.
+| Route | Access | Purpose | Highlights |
+| :--- | :--- | :--- | :--- |
+| `/` | Public | Neutral landing | Hides active events; discreet link to `/admin` |
+| `/l/:slug` | Public | Shareable wishlist | Budget cap, countdown, price sort/filter, Quick Look, store tags |
+| `/admin` | Owner only | Private studio | Magic Link auth, event & item CRUD, manual reorder, QR SVG export |
 
-## 1. Configurar la base de datos en Supabase
+> **Intentional scope:** no gift reservations, no store URL scraping, and no visitor accounts.
 
-1. Crea un proyecto en [Supabase](https://supabase.com/).
-2. Abre **SQL Editor** y ejecuta el archivo [`supabase/schema.sql`](supabase/schema.sql). Si ya tenías una versión previa, el script agrega de forma segura las columnas nuevas y recarga la caché del esquema.
-3. En **Authentication → Providers**, confirma que **Email** esté activo para enviar enlaces Magic Link.
-4. En **Authentication → URL Configuration**, registra `http://localhost:5173/admin` y tu ruta `/admin` de producción dentro de **Redirect URLs**.
+---
 
-## 2. Variables de entorno
+## Architecture
 
-Crea `.env` a partir de la plantilla de ejemplo:
+```mermaid
+flowchart LR
+  Visitor["Visitor (/l/:slug)"] -->|Public SELECT| DB[("Supabase Postgres + RLS")]
+  Bot["Social Crawler (WhatsApp / X)"] -->|User-Agent rewrite| OG["/api/list-meta"]
+  OG -->|Fetch title & budget| DB
+  Owner["Owner (/admin)"] -->|Magic Link Auth| Auth["Supabase Auth"]
+  Owner -->|INSERT / UPDATE / DELETE| DB
+```
+
+---
+
+## Stack
+
+| Layer | Choice | Why |
+| :--- | :--- | :--- |
+| **UI** | React 19 + native CSS | Apple-inspired translucent UI, light/dark mode, zero heavy UI libs |
+| **Routing** | `react-router-dom` v7 | Clean SPA routes with Vercel & Cloudflare fallbacks |
+| **Backend** | Supabase (`@supabase/supabase-js`) | Postgres + Email Magic Link + Row Level Security (`auth.uid() = user_id`) |
+| **QR & Previews** | `qrcode-generator` + `/api/list-meta` | Client-side SVG QR codes & dynamic Open Graph cards on share |
+
+---
+
+## Quick Start
+
+### 1. Supabase Setup
+
+1. Create a project in [Supabase](https://supabase.com/).
+2. Run [`supabase/schema.sql`](supabase/schema.sql) in **SQL Editor**.
+3. Enable **Email** (Magic Link) in **Authentication → Providers**.
+4. Add `http://localhost:5173/admin` (and your production `/admin` URL) under **Authentication → URL Configuration → Redirect URLs**.
+
+### 2. Environment Variables
 
 ```bash
 cp .env.example .env
 ```
 
-Completa ambos valores usando tus credenciales públicas de **Project Settings → API**:
-
 ```env
-VITE_SUPABASE_URL=https://tu-proyecto.supabase.co
-VITE_SUPABASE_ANON_KEY=tu-anon-key-publica
+VITE_SUPABASE_URL=https://your-project.supabase.co
+VITE_SUPABASE_ANON_KEY=your-public-anon-key
 ```
 
-Usa solo la llave pública (`anon` o `publishable`). Vite empaqueta las variables con prefijo `VITE_` dentro del código cliente.
+> Use only the public `anon` / `publishable` key (`VITE_*` variables are bundled for the browser).
 
-## 3. Ejecutar en local
+### 3. Run Locally
 
 ```bash
 npm install
 npm start
 ```
 
-Otros comandos disponibles:
+| Command | Action |
+| :--- | :--- |
+| `npm start` | Start Vite dev server |
+| `npm test` | Run unit tests (`src/lib/format.test.ts`) |
+| `npm run build` | Type-check (`tsc --noEmit`) and build `dist/` |
 
-- `npm test` — ejecuta las pruebas unitarias de formato, validación de URLs, slugs y cuenta regresiva.
-- `npm run build` — verifica tipos con TypeScript y genera el paquete final en `dist/`.
+---
 
-## 4. Despliegue SPA
+## Deployment
 
-Las rutas `/l/:slug` y `/admin` requieren fallback hacia `index.html` cuando alguien recarga el navegador:
-
-- **Vercel:** configurado en [`vercel.json`](vercel.json).
-- **Cloudflare Pages:** configurado en [`public/_redirects`](public/_redirects) con `/* /index.html 200`.
+| Platform | Config | Behavior |
+| :--- | :--- | :--- |
+| **Vercel** | [`vercel.json`](vercel.json) + [`api/list-meta.js`](api/list-meta.js) | SPA fallback + dynamic Open Graph metadata for `/l/:slug` |
+| **Cloudflare Pages** | [`public/_redirects`](public/_redirects) | SPA fallback (`/* /index.html 200`) |
