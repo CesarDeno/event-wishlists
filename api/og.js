@@ -1,8 +1,36 @@
-import { ImageResponse } from '@vercel/og';
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
+import satori from 'satori';
+import { Resvg } from '@resvg/resvg-js';
 
-export const config = {
-  runtime: 'edge',
-};
+const require = createRequire(import.meta.url);
+
+const FONTS = [
+  {
+    name: 'Inter',
+    data: readFileSync(
+      require.resolve('@fontsource/inter/files/inter-latin-400-normal.woff'),
+    ),
+    weight: 400,
+    style: 'normal',
+  },
+  {
+    name: 'Inter',
+    data: readFileSync(
+      require.resolve('@fontsource/inter/files/inter-latin-600-normal.woff'),
+    ),
+    weight: 600,
+    style: 'normal',
+  },
+  {
+    name: 'Inter',
+    data: readFileSync(
+      require.resolve('@fontsource/inter/files/inter-latin-700-normal.woff'),
+    ),
+    weight: 700,
+    style: 'normal',
+  },
+];
 
 const PRESET_THEMES = {
   classic: { bg: '#07080b', accent: '#0a84ff', surface: '#14161c' },
@@ -38,14 +66,14 @@ function formatBudget(budget, currency) {
   }
 }
 
-export default async function handler(req) {
-  const { searchParams } = new URL(req.url);
-  const slug = (searchParams.get('slug') || '').trim();
+export default async function handler(req, res) {
+  const slug = typeof req.query?.slug === 'string' ? req.query.slug.trim() : '';
 
   let title = 'Wishlist por evento';
   let hostName = '';
   let budgetText = null;
-  let description = 'Explora ideas de regalo, precios aproximados y enlaces directos.';
+  let description =
+    'Explora ideas de regalo, precios aproximados y enlaces directos.';
   let theme = PRESET_THEMES.classic;
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL?.trim();
@@ -119,17 +147,18 @@ export default async function handler(req) {
         border: '1px solid rgba(255,255,255,0.12)',
         color: '#d1d1d6',
         fontSize: '22px',
-        fontWeight: 500,
+        fontWeight: 600,
       },
       slug ? `/l/${slug}` : 'wishlist.denogean.dev',
     ),
   );
 
-  const root = el(
+  const tree = el(
     'div',
     {
-      width: '1200px',
-      height: '630px',
+      width: '100%',
+      height: '100%',
+      boxSizing: 'border-box',
       display: 'flex',
       flexDirection: 'column',
       justifyContent: 'space-between',
@@ -137,7 +166,7 @@ export default async function handler(req) {
       backgroundColor: theme.bg,
       backgroundImage: `radial-gradient(circle at 12% 10%, ${accent}33 0%, transparent 55%)`,
       color: '#f5f5f7',
-      fontFamily: 'sans-serif',
+      fontFamily: 'Inter',
     },
     [
       el(
@@ -152,26 +181,16 @@ export default async function handler(req) {
             'div',
             {
               display: 'flex',
-              alignItems: 'center',
-              gap: '16px',
+              padding: '10px 18px',
+              borderRadius: '999px',
+              background: theme.surface,
+              border: '1px solid rgba(255,255,255,0.14)',
+              color: accent,
+              fontSize: '20px',
+              fontWeight: 700,
+              letterSpacing: '0.06em',
             },
-            [
-              el(
-                'div',
-                {
-                  display: 'flex',
-                  padding: '10px 18px',
-                  borderRadius: '999px',
-                  background: theme.surface,
-                  border: '1px solid rgba(255,255,255,0.14)',
-                  color: accent,
-                  fontSize: '20px',
-                  fontWeight: 700,
-                  letterSpacing: '0.06em',
-                },
-                hostName ? `LISTA DE ${hostName.toUpperCase()}` : 'LISTA DE REGALOS',
-              ),
-            ],
+            hostName ? `LISTA DE ${hostName.toUpperCase()}` : 'LISTA DE REGALOS',
           ),
           el(
             'div',
@@ -179,7 +198,7 @@ export default async function handler(req) {
               display: 'flex',
               color: '#8e8e93',
               fontSize: '20px',
-              fontWeight: 500,
+              fontWeight: 600,
             },
             'wishlist.denogean.dev',
           ),
@@ -214,7 +233,9 @@ export default async function handler(req) {
               color: '#98989d',
               maxWidth: '960px',
             },
-            description.length > 130 ? `${description.slice(0, 127)}...` : description,
+            description.length > 130
+              ? `${description.slice(0, 127)}...`
+              : description,
           ),
         ],
       ),
@@ -230,8 +251,22 @@ export default async function handler(req) {
     ],
   );
 
-  return new ImageResponse(root, {
+  const svg = await satori(tree, {
     width: 1200,
     height: 630,
+    fonts: FONTS,
   });
+
+  const png = new Resvg(svg, {
+    fitTo: { mode: 'width', value: 1200 },
+  })
+    .render()
+    .asPng();
+
+  res.setHeader('Content-Type', 'image/png');
+  res.setHeader(
+    'Cache-Control',
+    'public, s-maxage=300, stale-while-revalidate=86400',
+  );
+  res.status(200).send(Buffer.from(png));
 }

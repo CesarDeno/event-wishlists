@@ -10,12 +10,14 @@
     "test": "node --test src/lib/format.test.ts"
   },
   "dependencies": {
+    "@fontsource/inter": "^5.3.0",
+    "@resvg/resvg-js": "^2.6.2",
     "@supabase/supabase-js": "^2.49.4",
-    "@vercel/og": "^1.0.3",
     "qrcode-generator": "^2.0.4",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-router-dom": "^7.5.0"
+    "react-router-dom": "^7.5.0",
+    "satori": "^0.63.2"
   },
   "devDependencies": {
     "@types/qrcode-generator": "^0.0.16",
