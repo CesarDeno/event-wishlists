@@ -316,8 +316,11 @@ export function PublicListPage() {
                            <line x1="8" y1="2" x2="8" y2="6" />
                            <line x1="3" y1="10" x2="21" y2="10" />
                         </svg>
-                        <span>
-                           Fecha del evento: <strong>{eventDateText}</strong>
+                        <span className="event-date-text">
+                           <span className="event-date-label">
+                              Fecha del evento<span className="event-date-colon">:</span>
+                           </span>{" "}
+                           <strong>{eventDateText}</strong>
                         </span>
                      </span>
                      {countdownText && <span className="event-countdown-pill">{countdownText}</span>}
@@ -436,11 +439,13 @@ export function PublicListPage() {
                               <div className="item-card-body">
                                  <div className="item-card-top">
                                     {item.is_favorite && <span className="badge-favorite">Lo que más quiero</span>}
-                                    <div className="item-title-row">
-                                       <h2>{item.title}</h2>
-                                       {storeLabel && <span className="store-pill">{storeLabel}</span>}
-                                    </div>
-                                    {priceText && <p className="item-price">~ {priceText}</p>}
+                                    <h2>{item.title}</h2>
+                                    {(priceText || storeLabel) && (
+                                       <div className="item-meta-row">
+                                          {priceText && <p className="item-price">~ {priceText}</p>}
+                                          {storeLabel && <span className="store-pill">{storeLabel}</span>}
+                                       </div>
+                                    )}
                                     {item.note && <p className="item-note">{item.note}</p>}
                                  </div>
 
