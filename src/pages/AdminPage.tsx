@@ -515,7 +515,7 @@ export function AdminPage() {
                            </label>
 
                            <div className="field">
-                              <span>Atmósfera de la lista</span>
+                              <span>Estilo de la lista</span>
                               <div className="theme-preset-grid">
                                  {LIST_THEME_PRESETS.map((preset) => {
                                     const active = listDraft.theme_preset === preset.id;

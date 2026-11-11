@@ -85,6 +85,10 @@ describe('URL and amount helpers', () => {
     assert.equal(getInitials('Sofía'), 'S');
     assert.equal(getInitials(''), '?');
     assert.equal(normalizeThemePreset('festive'), 'festive');
+    assert.equal(normalizeThemePreset('rose'), 'rose');
+    assert.equal(normalizeThemePreset('lavender'), 'lavender');
+    assert.equal(normalizeThemePreset('ocean'), 'ocean');
+    assert.equal(normalizeThemePreset('slate'), 'slate');
     assert.equal(normalizeThemePreset('unknown'), 'classic');
   });
 });

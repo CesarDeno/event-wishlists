@@ -53,7 +53,11 @@ export const LIST_THEME_PRESETS = [
   { id: 'classic', label: 'Clásico', swatch: '#007aff' },
   { id: 'warm', label: 'Cálido', swatch: '#c67d3b' },
   { id: 'festive', label: 'Navidad', swatch: '#2e7d5b' },
-  { id: 'editorial', label: 'Editorial', swatch: '#1c1c1e' },
+  { id: 'editorial', label: 'Editorial', swatch: '#52525b' },
+  { id: 'rose', label: 'Rosa', swatch: '#e11d48' },
+  { id: 'lavender', label: 'Lavanda', swatch: '#7c3aed' },
+  { id: 'ocean', label: 'Océano', swatch: '#0891b2' },
+  { id: 'slate', label: 'Grafito', swatch: '#475569' },
 ] as const;
 
 export type ValidThemePreset = (typeof LIST_THEME_PRESETS)[number]['id'];
