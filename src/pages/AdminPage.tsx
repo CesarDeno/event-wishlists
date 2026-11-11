@@ -11,7 +11,12 @@ import {
   parseOptionalAmount,
   slugify,
 } from '../lib/format';
-import { fetchListItems, isSupabaseConfigured, supabase } from '../lib/supabase';
+import {
+  fetchListItems,
+  formatSupabaseError,
+  isSupabaseConfigured,
+  supabase,
+} from '../lib/supabase';
 import type { Wishlist, WishlistItem } from '../types';
 
 interface ListDraft {
@@ -266,9 +271,10 @@ export function AdminPage() {
       setSavingList(false);
       if (error) {
         setListError(
-          error.code === '23505'
-            ? 'Ese slug ya está en uso. Elige otro distinto.'
-            : error.message,
+          formatSupabaseError(
+            error,
+            'Ese slug ya está en uso. Elige otro distinto.',
+          ),
         );
         return;
       }
@@ -288,9 +294,10 @@ export function AdminPage() {
     setSavingList(false);
     if (error) {
       setListError(
-        error.code === '23505'
-          ? 'Ese slug ya está en uso. Elige otro distinto.'
-          : error.message,
+        formatSupabaseError(
+          error,
+          'Ese slug ya está en uso. Elige otro distinto.',
+        ),
       );
       return;
     }

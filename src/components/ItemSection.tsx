@@ -1,6 +1,6 @@
 import { useState, type FormEvent } from 'react';
 import { formatMoney, isSafeHttpUrl, parseOptionalAmount } from '../lib/format';
-import { supabase } from '../lib/supabase';
+import { formatSupabaseError, supabase } from '../lib/supabase';
 import type { Wishlist, WishlistItem } from '../types';
 
 interface ItemSectionProps {
@@ -119,7 +119,7 @@ export function ItemSection({
     setSaving(false);
 
     if (result.error) {
-      setError(result.error.message);
+      setError(formatSupabaseError(result.error));
       return;
     }
 

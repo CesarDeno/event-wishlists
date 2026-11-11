@@ -1,42 +1,34 @@
 <!doctype html>
 <html lang="es">
-  <head>
-    <meta charset="UTF-8" />
-    <meta
-      name="viewport"
-      content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
-    />
-    <meta name="color-scheme" content="light dark" />
-    <meta
-      name="theme-color"
-      media="(prefers-color-scheme: light)"
-      content="#f2f2f7"
-    />
-    <meta
-      name="theme-color"
-      media="(prefers-color-scheme: dark)"
-      content="#000000"
-    />
-    <title>Wishlists por evento</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <script>
-      (() => {
-        try {
-          const saved = localStorage.getItem('theme');
-          const theme =
-            saved === 'light' || saved === 'dark'
-              ? saved
-              : matchMedia('(prefers-color-scheme: dark)').matches
-                ? 'dark'
-                : 'light';
-          document.documentElement.dataset.theme = theme;
-        } catch {}
-      })();
-    </script>
-  </head>
-  <body>
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-  </body>
+   <head>
+      <meta charset="UTF-8" />
+      <meta
+         name="viewport"
+         content="width=device-width, initial-scale=1, viewport-fit=cover, interactive-widget=resizes-content"
+      />
+      <meta name="color-scheme" content="light dark" />
+      <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f2f2f7" />
+      <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#000000" />
+      <title>Wishlist - Cesar Denogean</title>
+      <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+      <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+      <script>
+         (() => {
+            try {
+               const saved = localStorage.getItem("theme");
+               const theme =
+                  saved === "light" || saved === "dark"
+                     ? saved
+                     : matchMedia("(prefers-color-scheme: dark)").matches
+                       ? "dark"
+                       : "light";
+               document.documentElement.dataset.theme = theme;
+            } catch {}
+         })();
+      </script>
+   </head>
+   <body>
+      <div id="root"></div>
+      <script type="module" src="/src/main.tsx"></script>
+   </body>
 </html>

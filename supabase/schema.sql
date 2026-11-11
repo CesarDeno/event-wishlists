@@ -38,6 +38,8 @@ alter table public.lists add column if not exists emoji text;
 alter table public.items add column if not exists is_favorite boolean not null default false;
 alter table public.items add column if not exists sort_order integer not null default 0;
 
+notify pgrst, 'reload schema';
+
 create index if not exists items_list_id_idx on public.items(list_id);
 
 alter table public.lists enable row level security;

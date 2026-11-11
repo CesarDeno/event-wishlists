@@ -35,3 +35,16 @@ export async function fetchListItems(listId: string) {
 
   return ordered;
 }
+
+export function formatSupabaseError(
+  error: { code?: string; message: string },
+  duplicateSlugMessage?: string,
+): string {
+  if (error.code === '23505' && duplicateSlugMessage) {
+    return duplicateSlugMessage;
+  }
+  if (error.code === 'PGRST204' || error.code === '42703') {
+    return 'Falta actualizar las columnas en Supabase. Ejecuta las líneas ALTER TABLE de supabase/schema.sql en el SQL Editor.';
+  }
+  return error.message;
+}
