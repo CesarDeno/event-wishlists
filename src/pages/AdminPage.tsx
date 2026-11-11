@@ -534,7 +534,7 @@ export function AdminPage() {
                                        >
                                           <span
                                              className="theme-preset-dot"
-                                             style={{ backgroundColor: preset.swatch }}
+                                             style={{ background: preset.swatch }}
                                              aria-hidden="true"
                                           />
                                           <span>{preset.label}</span>

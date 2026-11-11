@@ -89,6 +89,10 @@ describe('URL and amount helpers', () => {
     assert.equal(normalizeThemePreset('lavender'), 'lavender');
     assert.equal(normalizeThemePreset('ocean'), 'ocean');
     assert.equal(normalizeThemePreset('slate'), 'slate');
+    assert.equal(normalizeThemePreset('sunset'), 'sunset');
+    assert.equal(normalizeThemePreset('matcha'), 'matcha');
+    assert.equal(normalizeThemePreset('indigo'), 'indigo');
+    assert.equal(normalizeThemePreset('github'), 'github');
     assert.equal(normalizeThemePreset('unknown'), 'classic');
   });
 });

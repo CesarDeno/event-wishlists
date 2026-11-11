@@ -1,4 +1,16 @@
-export type ListThemePreset = "classic" | "warm" | "festive" | "editorial" | "rose" | "lavender" | "ocean" | "slate";
+export type ListThemePreset =
+  | "classic"
+  | "warm"
+  | "festive"
+  | "editorial"
+  | "rose"
+  | "lavender"
+  | "ocean"
+  | "slate"
+  | "sunset"
+  | "matcha"
+  | "indigo"
+  | "github";
 
 export interface Wishlist {
    id: string;

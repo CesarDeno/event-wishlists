@@ -52,12 +52,16 @@ export function formatCompactUrl(raw: string): string | null {
 export const LIST_THEME_PRESETS = [
   { id: 'classic', label: 'Clásico', swatch: '#007aff' },
   { id: 'warm', label: 'Cálido', swatch: '#c67d3b' },
-  { id: 'festive', label: 'Navidad', swatch: '#2e7d5b' },
+  { id: 'festive', label: 'Verde', swatch: '#2e7d5b' },
   { id: 'editorial', label: 'Editorial', swatch: '#52525b' },
   { id: 'rose', label: 'Rosa', swatch: '#e11d48' },
   { id: 'lavender', label: 'Lavanda', swatch: '#7c3aed' },
   { id: 'ocean', label: 'Océano', swatch: '#0891b2' },
   { id: 'slate', label: 'Grafito', swatch: '#475569' },
+  { id: 'sunset', label: 'Atardecer', swatch: '#ea580c' },
+  { id: 'matcha', label: 'Matcha', swatch: '#65a30d' },
+  { id: 'indigo', label: 'Índigo', swatch: '#4f46e5' },
+  { id: 'github', label: 'Gris', swatch: '#6e7681' },
 ] as const;
 
 export type ValidThemePreset = (typeof LIST_THEME_PRESETS)[number]['id'];
