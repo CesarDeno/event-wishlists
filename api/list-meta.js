@@ -1,7 +1,6 @@
 const DEFAULT_TITLE = 'Wishlist - Cesar Denogean';
 const DEFAULT_DESCRIPTION =
   'Listas de regalos por evento con presupuesto tope, precios aproximados y enlaces directos.';
-const DEFAULT_IMAGE = 'https://wishlist.denogean.dev/og-image.png';
 
 function escapeHtml(value) {
   return String(value)
@@ -10,15 +9,6 @@ function escapeHtml(value) {
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;')
     .replaceAll("'", '&#39;');
-}
-
-function isSafeHttpUrl(raw) {
-  try {
-    const parsed = new URL(String(raw).trim());
-    return parsed.protocol === 'http:' || parsed.protocol === 'https:';
-  } catch {
-    return false;
-  }
 }
 
 function formatBudget(budget, currency) {
@@ -47,7 +37,7 @@ export default async function handler(req, res) {
   let title = DEFAULT_TITLE;
   let description = DEFAULT_DESCRIPTION;
   const pageUrl = slug ? `${origin}/l/${encodeURIComponent(slug)}` : origin;
-  let imageUrl = `${origin}/og-image.png`;
+  const imageUrl = `${origin}/apple-touch-icon.png`;
 
   const supabaseUrl = process.env.VITE_SUPABASE_URL?.trim();
   const supabaseKey = process.env.VITE_SUPABASE_ANON_KEY?.trim();
@@ -60,7 +50,7 @@ export default async function handler(req, res) {
       };
       const base = `${supabaseUrl}/rest/v1/lists?slug=eq.${encodeURIComponent(slug)}&limit=1`;
       let response = await fetch(
-        `${base}&select=title,description,budget,currency,emoji,host_name,cover_url`,
+        `${base}&select=title,description,budget,currency,emoji,host_name`,
         { headers },
       );
       if (!response.ok) {
@@ -82,10 +72,6 @@ export default async function handler(req, res) {
             'Explora ideas de regalo y enlaces directos.',
           ].filter(Boolean);
           description = parts.join(' · ');
-          imageUrl =
-            list.cover_url && isSafeHttpUrl(list.cover_url)
-              ? list.cover_url.trim()
-              : `${origin}/api/og?slug=${encodeURIComponent(slug)}`;
         }
       }
     } catch {
@@ -96,10 +82,13 @@ export default async function handler(req, res) {
   const safeTitle = escapeHtml(title);
   const safeDescription = escapeHtml(description);
   const safeUrl = escapeHtml(pageUrl);
-  const safeImage = escapeHtml(imageUrl || DEFAULT_IMAGE);
+  const safeImage = escapeHtml(imageUrl);
 
   res.setHeader('Content-Type', 'text/html; charset=utf-8');
-  res.setHeader('Cache-Control', 'public, s-maxage=60, stale-while-revalidate=300');
+  res.setHeader(
+    'Cache-Control',
+    'public, s-maxage=60, stale-while-revalidate=300',
+  );
   res.status(200).send(`<!doctype html>
 <html lang="es">
   <head>
@@ -113,9 +102,9 @@ export default async function handler(req, res) {
     <meta property="og:description" content="${safeDescription}" />
     <meta property="og:url" content="${safeUrl}" />
     <meta property="og:image" content="${safeImage}" />
-    <meta property="og:image:width" content="1200" />
-    <meta property="og:image:height" content="630" />
-    <meta name="twitter:card" content="summary_large_image" />
+    <meta property="og:image:width" content="180" />
+    <meta property="og:image:height" content="180" />
+    <meta name="twitter:card" content="summary" />
     <meta name="twitter:title" content="${safeTitle}" />
     <meta name="twitter:description" content="${safeDescription}" />
     <meta name="twitter:image" content="${safeImage}" />
