@@ -1,6 +1,6 @@
 <div align="center">
 
-<img src="./public/apple-touch-icon.png" alt="Event Wishlists Logo" width="88" />
+<img src="./public/favicon.svg" alt="Event Wishlists Logo" width="88" />
 
 # Event Wishlists
 
